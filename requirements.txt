@@ -1,0 +1,13 @@
+torch>=2.2
+transformers>=4.51
+accelerate>=0.33
+peft>=0.12
+datasets>=2.20
+pillow>=10.0
+pyyaml>=6.0
+tqdm>=4.66
+numpy>=1.26
+qwen-vl-utils>=0.0.8
+sentencepiece>=0.2
+protobuf>=4.25
+safetensors>=0.4
