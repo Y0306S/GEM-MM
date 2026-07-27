@@ -1,0 +1,5 @@
+{"id": 1, "prompt": "How many red apples are on the table?", "image": "demo_table.jpg", "chosen": "I count the red apples visible on the table. There are three. Final Answer: 3", "rejected": "There are many fruits, probably five or six apples."}
+{"id": 2, "prompt": "What color is the car in the foreground?", "image": "demo_car.jpg", "chosen": "The car closest to the camera is blue. Final Answer: blue", "rejected": "I think the car is red because cars are often red."}
+{"id": 3, "prompt": "Is the person wearing a hat?", "image": "demo_person.jpg", "chosen": "Looking at the head region, a baseball cap is clearly visible. Final Answer: yes", "rejected": "Maybe, I cannot tell from this image."}
+{"id": 4, "prompt": "Describe the weather in the scene.", "image": "demo_sky.jpg", "chosen": "The sky is overcast with gray clouds and no direct sunlight. Final Answer: cloudy", "rejected": "It is a bright sunny day with clear blue sky."}
+{"id": 5, "prompt": "What animal is shown?", "image": "demo_animal.jpg", "chosen": "The animal has orange fur and stripes, which identifies a tiger. Final Answer: tiger", "rejected": "It looks like a house cat."}

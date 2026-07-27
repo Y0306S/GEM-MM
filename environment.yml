@@ -1,9 +1,0 @@
-name: gem-mm
-channels:
-  - defaults
-  - pytorch
-dependencies:
-  - python=3.11
-  - pip
-  - pip:
-      - -r requirements.txt

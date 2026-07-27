@@ -1,222 +1,227 @@
-<div align="center">
+<p align="center">
+  <img src="materials/logo.jpg" width="360">
+</p>
 
-# GEM-MM
+<p align="center">
+  <a href="https://github.com/SNOWTEAM2023/GEM"><img src="https://img.shields.io/badge/Parent-GEM-0B3D5C" alt="Parent GEM"></a>
+  <a href="https://arxiv.org/abs/2511.13007"><img src="https://img.shields.io/badge/GEM_Paper-ArXiv-red" alt="GEM arXiv"></a>
+  <a href="LICENCE.txt"><img src="https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey" alt="License"></a>
+</p>
 
-### Entropy-Guided Multimodal Preference Alignment for Vision-Language Models
+💻 This is the official implementation of **GEM-MM**: Entropy-Guided Preference Alignment for Vision-Language Models.
 
-**Official code** for adapting [GEM](https://arxiv.org/abs/2511.13007) to vision-language models via fork-token entropy rewards and on-policy SEGA.
+🧬 **GEM-MM** extends [**GEM**](https://github.com/SNOWTEAM2023/GEM) ([AAAI 2026 oral](https://aaai.org/conference/aaai/aaai-26/), [arXiv:2511.13007](https://arxiv.org/abs/2511.13007)) from text-only LLMs to **vision-language models**. Instead of consuming offline preference pairs with a sequence-level DPO-style loss, GEM-MM samples on-policy chain-of-thought candidates, scores them with a **fork / final entropy reward**, and updates the full VLM with **SEGA** (group-normalized policy gradients).
 
-[![GitHub](https://img.shields.io/badge/GitHub-SNOWTEAM2023%2FGEM--MM-0B3D5C?style=for-the-badge&logo=github)](https://github.com/SNOWTEAM2023/GEM-MM)
-[![License: MIT](https://img.shields.io/badge/License-MIT-2A9D8F?style=for-the-badge)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Model](https://img.shields.io/badge/Backbone-Qwen3--VL--4B-C1121F?style=for-the-badge)](https://huggingface.co/Qwen)
+#### Authors
+Yuanshan Chua, [Xuejiao Zhao*](https://zxjwudi.github.io/xuejiaozhao/)
 
-[Installation](#-installation) ·
-[Quickstart](#-quickstart) ·
-[Method](#-method) ·
-[Results](#-results) ·
-[Citation](#-citation)
+**Nanyang Technological University &nbsp;|&nbsp; LILY Research Centre (NTU) &nbsp;|&nbsp; ANGEL Research Institute (NTU)**
 
-<br/>
-
-<img src="assets/poster.png" alt="GEM-MM conference poster" width="95%"/>
-
-<sub>Conference poster · full size in <a href="assets/poster.png"><code>assets/poster.png</code></a></sub>
-
-</div>
+\* Corresponding author
 
 ---
 
-## Why GEM-MM?
-
-Vision-language models perceive and reason well, but **preference alignment** in the multimodal setting is still brittle.  
-**GEM-MM** brings GEM’s information-theoretic signal to VLMs:
-
-| Idea | What we do |
-|------|------------|
-| **Fork entropy** | Reward candidates using entropy at uncertain “fork” tokens |
-| **On-policy SEGA** | Sample $k$ responses, normalize advantages in-group, update the policy |
-| **Vision-aware recipe** | Qwen3-VL messages, pixel bounds, `repo_limit128` prompting, **full FT** |
-
-> Tagline: *Entropy for better alignment. Information for better answers.*
+## 🔥 News
+* **[2026.07]** Public code skeleton, demo data, poster, and README released.
+* Paper draft under preparation (MM-RLHF fair-budget bake-off).
 
 ---
 
-## News
+## 🧭 Framework Overview
 
-- **2026-07** — Public code skeleton, configs, poster, and docs released in this repository.
-- Paper draft & full table refresh in progress (SIMA / public benches).
+<p align="center">
+  <img src="materials/gem_mm_pipeline.png" width="1000">
+</p>
+<p align="center"><em>Figure 1: GEM closed-loop pipeline instantiated by GEM-MM for VLMs
+(Cognitive Filtering + SEGA; multimodal query <code>x = (x_I, x_Q)</code>).</em></p>
 
----
+**GEM-MM** aligns a VLM with a **Cognitive Feedback Loop**:
 
-## Highlights
+* **Cognitive Filtering**: sample `k` CoT candidates per multimodal prompt; score with entropy-guided token scoring that **rewards high entropy on fork tokens** (visual commitment points) and **penalizes high entropy on the final answer**.
+* **SEGA**: listwise update with **group-normalized advantages**
+  `A_i = (r_i − mean(r)) / (std(r) + ε)` inside each `k`-way group, then a full-parameter policy-gradient step.
 
-- Extends **GEM → multimodal** (GEM-MM), not a text-only re-run  
-- Fair bake-off under a **fixed 3000-sample** MM-RLHF budget  
-- Strong baselines: **SFT / DPO / MM-DPO / mDPO / SIMA**  
-- Reported GEM-MM runs use **full fine-tune** (+ grad checkpointing), not LoRA  
-- Eval suite: preference / A/B / near-chosen + **MMHal · Hallusion · MME** (+ HAL)  
-- Cross-dataset evidence on **RLAIF-V**
+### Key formulas
 
----
+**Token entropy**
 
-## Method
-
-```text
-  image + question  (x_I , x_Q)
-            │
-            ▼
-   sample k on-policy candidates  { y_1 … y_k }
-            │
-            ▼
-   fork-token entropy  +  final-answer term  →  reward R(y)
-            │
-            ▼
-   group-normalized advantage A_k
-            │
-            ▼
-   SEGA update  (full fine-tune of π_θ)
+```math
+H_t = -\sum_v p_t(v)\log p_t(v)
 ```
 
-**Reward (sketch).** Keep the top-$m$ high-entropy fork positions $F$:
+**Fork / final reward** (paper primary: `λ = 2.0`, `ρ = 0.05`)
 
-$$
-R(y)=\lambda\cdot\frac{1}{|F|}\sum_{t\in F} H\!\big(\pi(\cdot\mid x,y_{<t})\big)+b_{\mathrm{final}}
-$$
+```math
+r(y) = -\bar{H}_{\mathrm{final}} + \lambda\,\bar{H}_{\mathrm{fork}}
+```
 
-**Advantage.** Within each prompt group, standardize rewards → $A_k$, then apply the SEGA update.
+**SEGA objective**
 
-Details, ablations, and VLM knobs: **[`docs/method.md`](docs/method.md)**
-
----
-
-## Results
-
-**Protocol.** Qwen3-VL-4B-Instruct · **3000** MM-RLHF train IDs · **1000** held-out eval · same prompt style for all methods.
-
-| Method | Pref. Acc. (%) | Notes |
-|--------|---------------:|-------|
-| Base | 51.2 | Instruct checkpoint |
-| SFT | 57.9 | |
-| DPO | 58.9 | |
-| MM-DPO | 58.1 | |
-| mDPO | 58.4 | |
-| SIMA | — | filling in (train done; MM-RLHF eval running) |
-| **GEM-MM (ours)** | **61.7** | Full FT SEGA · primary paper row |
-
-Near-chosen / public-bench / ablation tables ship with the paper draft.  
-Reproduce the fair split: [`docs/reproduce.md`](docs/reproduce.md)
-
----
-
-## Repository structure
-
-```text
-GEM-MM/
-├── assets/              # poster & figures
-├── configs/             # default + ablation YAMLs
-├── docs/                # method · datasets · reproduce · checklist
-├── examples/            # quickstart
-├── scripts/             # train / eval entrypoints
-├── src/gem_mm/          # library (config, entropy, SEGA, prompts)
-└── tests/               # unit tests for reward helpers
+```math
+A_i = \frac{r_i - \mathrm{mean}(r)}{\mathrm{std}(r)+\varepsilon},\qquad
+\mathcal{L}(\theta)=\frac{1}{|\mathcal{V}|}\sum_i (-A_i\log\pi_\theta(y_i\mid x))
 ```
 
 ---
 
-## Installation
+## 🚀 Quickstart
+
+### 0) Install
 
 ```bash
 git clone https://github.com/SNOWTEAM2023/GEM-MM.git
 cd GEM-MM
-
-conda env create -f environment.yml
-conda activate gem-mm
-
 pip install -r requirements.txt
-pip install -e .
 ```
 
-**Hardware.** CUDA GPU recommended — ≥24 GB for 4B full FT; **40 GB** is comfortable with gradient checkpointing.
+**Hardware.** CUDA GPU recommended. Paper runs use **Qwen3-VL-4B-Instruct**, full fine-tune, gradient checkpointing, on a **40 GB** A100-class GPU.
 
----
+### 1) Data preparation
 
-## Quickstart
+This project expects multimodal preference pairs as JSONL:
+
+```jsonl
+{"id": 1, "prompt": "...", "image": "rel/path.jpg", "chosen": "...", "rejected": "..."}
+```
+
+A tiny demo file is provided at `data/preference_data.jsonl`. Put images under `data/images/` (paths are relative to `--image_root`).
+
+**Paper datasets** (not redistributed here; obtain from the original sources):
+
+1. **[MM-RLHF](https://github.com/Kwai-Keye/MM-RLHF)** — primary corpus. We use the first **3000** unique short-prompt IDs for training and IDs **3001–4000** for held-out preference evaluation.
+2. **[RLAIF-V](https://huggingface.co/datasets/openbmb/RLAIF-V-Dataset)** — transfer / negative-transfer study in the paper appendix.
+
+You can also plug in custom multimodal pairs in the same `(prompt, image, chosen, rejected)` format.
+
+### 2) Run GEM-MM
 
 ```bash
-# Paths (adjust to your machine)
-export GEM_DATA_ROOT=/path/to/data
-export GEM_MM_OUT_ROOT=/path/to/outputs
-
-# Sanity-check config resolution
-python scripts/train_gem_mm.py --config configs/default_gem_mm.yaml --dry-run
-
-# Train GEM-MM (SEGA) — wire your local Qwen3-VL stack as documented
-python scripts/train_gem_mm.py --config configs/default_gem_mm.yaml
-
-# Preference eval on held-out pairs
-python scripts/eval_preference.py --config configs/default_gem_mm.yaml \
-  --checkpoint "$GEM_MM_OUT_ROOT/gem_mm/checkpoint-final"
+python GEM_MM.py \
+  --data_path data/preference_data.jsonl \
+  --image_root data/images \
+  --model_name Qwen/Qwen3-VL-4B-Instruct \
+  --output_dir output/gem_mm_final
 ```
 
-More: [`examples/quickstart.md`](examples/quickstart.md) · configs in [`configs/`](configs/)
+Optional flags: `--skip_sft`, `--skip_sega`.
+
+> The public trainers ship as a **GEM-style skeleton** (same module layout as [SNOWTEAM2023/GEM](https://github.com/SNOWTEAM2023/GEM)). Wire the Qwen-VL chat template + generate/score hooks in `src/sft_trainer.py` and `src/gem_trainer.py` for full reproduction; scoring math lives in `src/entropy_scorer.py`.
 
 ---
 
-## Datasets & benchmarks
+## ✨ Code Structure
 
-| Resource | Role |
-|----------|------|
-| [MM-RLHF](https://github.com/Kwai-Keye/MM-RLHF) | Main preference train / eval |
-| [RLAIF-V](https://huggingface.co/datasets/openbmb/RLAIF-V-Dataset) | Transfer / generalization |
-| MMHal · Hallusion · MME | Public multimodal benches |
-| POPE · AMBER · safety | API-free HAL suite |
+```text
+GEM-MM/
+├── GEM_MM.py                 # Main entry (SFT → SEGA), mirrors GEM.py
+├── data/                     # Demo preference JSONL + images/
+│   └── preference_data.jsonl
+├── src/                      # Core implementation
+│   ├── __init__.py
+│   ├── config.py             # Hyperparameters (λ, ρ, k, …)
+│   ├── dataset.py            # Multimodal preference dataset
+│   ├── entropy_scorer.py     # Fork / final entropy reward
+│   ├── gem_trainer.py        # SEGA training loop
+│   ├── sft_trainer.py        # Supervised warm-start
+│   └── model_utils.py        # Qwen2/3-VL loaders
+├── materials/                # Pipeline figure, poster, logo
+│   ├── gem_mm_pipeline.png
+│   ├── poster.png / poster.pdf
+│   └── logo.jpg
+├── README.md
+├── LICENCE.txt
+└── requirements.txt
+```
 
-Preparation notes: [`docs/datasets.md`](docs/datasets.md)
+### Implementation notes
+
+* **Entropy-guided scoring** implements the final-answer entropy penalty and top-`ρ` fork entropy average (`src/entropy_scorer.py`).
+* **SEGA** uses within-group standardization of rewards before the policy update.
+* Preference pairs define the **prompt pool** and held-out eval; GEM-MM does **not** use `chosen`/`rejected` as DPO targets during SEGA.
+* Paper runs are **full fine-tunes** (no LoRA).
+
+### Reproducibility knobs (`src/config.py`)
+
+| Knob | Meaning | Paper primary |
+|------|---------|---------------|
+| `k_candidates` | CoTs per prompt | 3 |
+| `lambda_weight` (λ) | Fork entropy weight | 2.0 |
+| `top_m_ratio` (ρ) | Top-entropy fraction on CoT | 0.05 |
+| `temperature` | Sampling temperature | 0.9 |
+| `sega_lr` | SEGA learning rate | 1e-5 |
+| `min_pixels` / `max_pixels` | Vision token budget | 200704 / 401408 |
+
+A conservative operating point (`λ=2.5`, `τ=0.8`) raises near-chosen rate to **62.4%** while trading off depth / hallucination (see paper).
 
 ---
 
-## Documentation
+## 📊 Experimental Results
 
-| Doc | Contents |
-|-----|----------|
-| [`docs/method.md`](docs/method.md) | Equations & VLM adaptations |
-| [`docs/reproduce.md`](docs/reproduce.md) | Fair protocol & checklist |
-| [`docs/datasets.md`](docs/datasets.md) | Data layout |
-| [`docs/conference_repo_checklist.md`](docs/conference_repo_checklist.md) | What belongs in a submission repo |
-| [`assets/poster.png`](assets/poster.png) | Printable landscape poster |
+**Protocol.** Backbone **Qwen3-VL-4B-Instruct** · **3000** MM-RLHF train IDs · **1000** held-out pairs · same chat template / token budget for all systems · **full fine-tune**.
+
+Baselines: Base, SFT, MM-DPO, mDPO, SIMA (heuristic self-improvement family).  
+
+| Method | Depth Pref % | Implicit rew. % | A/B % | AMBER Hal ↓ | CHAIR ↓ |
+|--------|:------------:|:---------------:|:-----:|:-----------:|:-------:|
+| Base | 51.2 | — | **68.9** | 30.7 | 5.2 |
+| SFT | 57.9 | 40.9 | 66.4 | 24.0 | 5.1 |
+| MM-DPO | 58.1 | 41.0 | 66.4 | 23.4 | 5.0 |
+| mDPO | 58.4 | 40.2 | 66.1 | 23.4 | 5.0 |
+| SIMA | 57.3 | 40.8 | 66.0 | 23.9 | 5.1 |
+| **GEM-MM (ours)** | **61.7** | **41.4** | **68.3** | **20.6** | **4.6** |
+
+* Depth Pref shares functional form with the training reward (diagnostic).
+* Implicit reward is the objective-agnostic DPO margin vs. the frozen base.
+* AMBER Cover is matched across preference-tuned systems (~56.4–57.0); GEM-MM lowers Hal/CHAIR without describing less.
+* HallusionBench figure-level **fAcc 45.95** (best); aAcc 69.82 (within 0.32 of Base).
+
+<p align="center">
+  <img src="materials/poster.png" width="920">
+</p>
+<p align="center"><em>Conference poster (PDF: <a href="materials/poster.pdf"><code>materials/poster.pdf</code></a>).</em></p>
 
 ---
 
-## Citation
+## 🔗 Relation to GEM
 
-If you use this repository, please cite:
+| | [GEM](https://github.com/SNOWTEAM2023/GEM) | **GEM-MM** (this repo) |
+|--|--|--|
+| Modality | Text LLM | Vision-language model |
+| Input | `q` | `x = (x_I, x_Q)` |
+| Backbone (paper) | LLM few-shot | Qwen3-VL-4B-Instruct |
+| Core loop | Cognitive Filtering + SEGA | Same, with vision tokens + VLM decoding |
+| Data | Skywork / medical prefs | MM-RLHF (primary), RLAIF-V (transfer) |
+
+Please cite **both** this work and the original GEM paper when appropriate.
+
+---
+
+## 📖 Citation
 
 ```bibtex
 @misc{gemmm2026,
-  title        = {GEM-MM: Entropy-Guided Multimodal Preference Alignment
-                  for Vision-Language Models},
+  title        = {{GEM-MM}: Entropy-Guided Preference Alignment for Vision-Language Models},
   author       = {Chua, Yuanshan and Zhao, Xuejiao},
   year         = {2026},
   howpublished = {\url{https://github.com/SNOWTEAM2023/GEM-MM}},
   note         = {Code and resources}
 }
+
+@inproceedings{zhao2026gem,
+  title     = {{GEM}: Generative Entropy-Guided Preference Modeling for Few-Shot Alignment of {LLMs}},
+  author    = {Zhao, Yiyang and Bai, Huiyu and Zhao, Xuejiao},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume    = {40},
+  pages     = {38146--38155},
+  year      = {2026}
+}
 ```
 
-Please also cite the original text **GEM** paper when appropriate:  
-[arXiv:2511.13007](https://arxiv.org/abs/2511.13007) · machine-readable: [`CITATION.cff`](CITATION.cff)
-
 ---
 
-## Acknowledgments
+## 🔑 License
 
-We build on GEM, DPO-family preference learning (including multimodal variants such as MM-DPO, mDPO, and SIMA), and the Qwen3-VL model family. Experiments use open benchmarks (MMHal-Bench, HallusionBench, MME, POPE, AMBER).
-
----
-
-## License
-
-Released under the [MIT License](LICENSE).
+This work is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License](http://creativecommons.org/licenses/by-nc/4.0/). Commercial use is prohibited without a separate license agreement. See [`LICENCE.txt`](LICENCE.txt).
 
 ---
 
@@ -224,11 +229,6 @@ Released under the [MIT License](LICENSE).
 
 | | |
 |--|--|
-| **Yuanshan Chua** | [`YCHUA060@e.ntu.edu.sg`](mailto:YCHUA060@e.ntu.edu.sg) |
-| **Xuejiao Zhao** | [`xjzhao@ntu.edu.sg`](mailto:xjzhao@ntu.edu.sg) |
-| **Affiliation** | Nanyang Technological University |
-| **Org** | [SNOWTEAM2023](https://github.com/SNOWTEAM2023) |
-
-<div align="center">
-<sub>Maintained at <a href="https://github.com/SNOWTEAM2023/GEM-MM">github.com/SNOWTEAM2023/GEM-MM</a></sub>
-</div>
+| **Yuanshan Chua** | [YCHUA060@e.ntu.edu.sg](mailto:YCHUA060@e.ntu.edu.sg) |
+| **Xuejiao Zhao** | [xjzhao@ntu.edu.sg](mailto:xjzhao@ntu.edu.sg) |
+| **Org** | [SNOWTEAM2023](https://github.com/SNOWTEAM2023) · [Parent GEM](https://github.com/SNOWTEAM2023/GEM) |

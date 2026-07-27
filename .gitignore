@@ -26,7 +26,7 @@ env/
 .DS_Store
 Thumbs.db
 
-# Experiment artifacts (keep repo lean)
+# Experiment artifacts
 outputs/
 output/
 wandb/
@@ -39,12 +39,10 @@ checkpoints/
 logs/
 *.log
 
-# Data (download separately)
+# Data (keep only tiny demo jsonl tracked)
+data/images/*
+!data/images/.gitkeep
 data/raw/
-data/images/
-**/dpo_pairs.jsonl
-**/*_train.jsonl
-**/*_eval.jsonl
 
 # Secrets
 **/openai_api_key
@@ -52,5 +50,4 @@ data/images/
 *.pem
 id_rsa*
 
-# Notebooks checkpoints
 .ipynb_checkpoints/
