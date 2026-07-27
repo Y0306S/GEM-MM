@@ -69,7 +69,7 @@ A_i = \frac{r_i - \mathrm{mean}(r)}{\mathrm{std}(r)+\varepsilon},\qquad
 ### 0) Install
 
 ```bash
-git clone https://github.com/SNOWTEAM2023/GEM-MM.git
+git clone https://github.com/Y0306S/GEM-Image.git
 cd GEM-MM
 pip install -r requirements.txt
 ```
@@ -203,7 +203,7 @@ Please cite **both** this work and the original GEM paper when appropriate.
   title        = {{GEM-MM}: Entropy-Guided Preference Alignment for Vision-Language Models},
   author       = {Chua, Yuanshan and Zhao, Xuejiao},
   year         = {2026},
-  howpublished = {\url{https://github.com/SNOWTEAM2023/GEM-MM}},
+  howpublished = {\url{https://github.com/Y0306S/GEM-Image}},
   note         = {Code and resources}
 }
 
