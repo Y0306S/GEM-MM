@@ -1,0 +1,53 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Envs
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Experiment artifacts
+outputs/
+output/
+wandb/
+runs/
+checkpoints/
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+logs/
+*.log
+
+# Data (keep only tiny demo jsonl tracked)
+data/images/*
+!data/images/.gitkeep
+data/raw/
+
+# Secrets
+**/openai_api_key
+**/wandb_api_key
+*.pem
+id_rsa*
+
+.ipynb_checkpoints/
