@@ -28,7 +28,7 @@ Yuanshan Chua, [Xuejiao Zhao*](https://zxjwudi.github.io/xuejiaozhao/)
 ## 🧭 Framework Overview
 
 <p align="center">
-  <img src="materials/gem_mm_pipeline.png" width="1000">
+  <img src="materials/gem_pipeline_tikz_2.png" width="1000">
 </p>
 <p align="center"><em>Figure 1: GEM closed-loop pipeline instantiated by GEM-MM for VLMs
 (Cognitive Filtering + SEGA; multimodal query <code>x = (x_I, x_Q)</code>).</em></p>
@@ -123,7 +123,7 @@ GEM-MM/
 │   ├── sft_trainer.py        # Supervised warm-start
 │   └── model_utils.py        # Qwen2/3-VL loaders
 ├── materials/                # Pipeline figure
-│   └── gem_mm_pipeline.png
+│   └── gem_pipeline_tikz_2.png
 ├── README.md
 ├── LICENCE.txt
 └── requirements.txt
