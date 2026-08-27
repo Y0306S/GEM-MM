@@ -155,21 +155,30 @@ A conservative operating point (`λ=2.5`, `τ=0.8`) raises near-chosen rate to *
 
 **Protocol.** Backbone **Qwen3-VL-4B-Instruct** · **3000** MM-RLHF train IDs · **1000** held-out pairs · same chat template / token budget for all systems · **full fine-tune**.
 
-Baselines: Base, SFT, MM-DPO, mDPO, SIMA (heuristic self-improvement family).  
+Baselines: SFT, MM-DPO, mDPO, SIMA (heuristic self-improvement family).
 
 | Method | Depth Pref % | Implicit rew. % | A/B % | AMBER Hal ↓ | CHAIR ↓ |
 |--------|:------------:|:---------------:|:-----:|:-----------:|:-------:|
-| Base | 51.2 | — | **68.9** | 30.7 | 5.2 |
 | SFT | 57.9 | 40.9 | 66.4 | 24.0 | 5.1 |
 | MM-DPO | 58.1 | 41.0 | 66.4 | 23.4 | 5.0 |
 | mDPO | 58.4 | 40.2 | 66.1 | 23.4 | 5.0 |
 | SIMA | 57.3 | 40.8 | 66.0 | 23.9 | 5.1 |
 | **GEM-MM (ours)** | **61.7** | **41.4** | **68.3** | **20.6** | **4.6** |
 
+**HallusionBench** (rule-based scorer; higher is better). GEM-MM is best on all three granularities.
+
+| Method | aAcc ↑ | qAcc ↑ | fAcc ↑ |
+|--------|:------:|:------:|:------:|
+| SFT | 68.66 | 43.96 | 43.35 |
+| MM-DPO | 68.66 | 42.86 | 42.20 |
+| mDPO | 69.30 | 44.40 | 43.64 |
+| SIMA | 68.56 | 43.74 | 43.93 |
+| **GEM-MM (ours)** | **69.82** | **46.59** | **45.95** |
+
 * Depth Pref shares functional form with the training reward (diagnostic).
-* Implicit reward is the objective-agnostic DPO margin vs. the frozen base.
-* AMBER Cover is matched across preference-tuned systems (~56.4–57.0); GEM-MM lowers Hal/CHAIR without describing less.
-* HallusionBench figure-level **fAcc 45.95** (best); aAcc 69.82 (within 0.32 of Base).
+* Implicit reward is the objective-agnostic DPO margin vs. the frozen backbone.
+* AMBER Cover is matched across systems (~56.4–57.0); GEM-MM lowers Hal/CHAIR without describing less.
+* HallusionBench: aAcc = all-sample, qAcc = question-group, fAcc = figure-level accuracy.
 
 ---
 
