@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="materials/logo.jpg" width="360">
-</p>
+<h1 align="center">GEM-MM: Entropy-Guided Preference Alignment for Vision-Language Models</h1>
 
 <p align="center">
   <a href="https://github.com/SNOWTEAM2023/GEM"><img src="https://img.shields.io/badge/Parent-GEM-0B3D5C" alt="Parent GEM"></a>
@@ -22,7 +20,7 @@ Yuanshan Chua, [Xuejiao Zhao*](https://zxjwudi.github.io/xuejiaozhao/)
 ---
 
 ## 🔥 News
-* **[2026.07]** Public code skeleton, demo data, poster, and README released.
+* **[2026.07]** Public code skeleton, demo data, and README released.
 * Paper draft under preparation (MM-RLHF fair-budget bake-off).
 
 ---
@@ -124,10 +122,8 @@ GEM-MM/
 │   ├── gem_trainer.py        # SEGA training loop
 │   ├── sft_trainer.py        # Supervised warm-start
 │   └── model_utils.py        # Qwen2/3-VL loaders
-├── materials/                # Pipeline figure, poster, logo
-│   ├── gem_mm_pipeline.png
-│   ├── poster.png / poster.pdf
-│   └── logo.jpg
+├── materials/                # Pipeline figure
+│   └── gem_mm_pipeline.png
 ├── README.md
 ├── LICENCE.txt
 └── requirements.txt
@@ -174,11 +170,6 @@ Baselines: Base, SFT, MM-DPO, mDPO, SIMA (heuristic self-improvement family).
 * Implicit reward is the objective-agnostic DPO margin vs. the frozen base.
 * AMBER Cover is matched across preference-tuned systems (~56.4–57.0); GEM-MM lowers Hal/CHAIR without describing less.
 * HallusionBench figure-level **fAcc 45.95** (best); aAcc 69.82 (within 0.32 of Base).
-
-<p align="center">
-  <img src="materials/poster.png" width="920">
-</p>
-<p align="center"><em>Conference poster (PDF: <a href="materials/poster.pdf"><code>materials/poster.pdf</code></a>).</em></p>
 
 ---
 
